@@ -21,6 +21,7 @@ local.properties
 *.keystore
 *.apk
 *.aab
+*.idsig
 
 # OS files
 .DS_Store

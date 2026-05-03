@@ -26,7 +26,14 @@
 
 ## APK
 
-デバッグAPKはリポジトリ直下の `calculator-release-signed.apk` からダウンロードできます。
+署名付きの最新版APKはリポジトリ直下の `calculator-release-signed.apk` からダウンロードできます。
+
+過去バージョンの署名付きAPKは `releases/` に保存します。
+
+```text
+releases/
+  calculator-release-v1.0.0.apk
+```
 
 ## Build
 

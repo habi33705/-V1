@@ -34,6 +34,7 @@
 releases/
   calculator-release-v1.0.0.apk
   calculator-release-v1.0.1.apk
+  calculator-release-v1.0.2.apk
 ```
 
 ## Build

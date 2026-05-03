@@ -157,18 +157,8 @@ private fun EngineeringCalculatorApp() {
     var selectedProfile by remember { mutableIntStateOf(0) }
     var presetName by remember { mutableStateOf("") }
     var secretVisible by remember { mutableStateOf(false) }
-    var dismissedSecretFor by remember { mutableStateOf("") }
     val presets = remember { mutableStateListOf<Formula>().apply { addAll(loadPresets(context)) } }
     val expression = expressionValue.text
-
-    LaunchedEffect(expression) {
-        if (expression == "114514" && dismissedSecretFor != expression) {
-            secretVisible = true
-        } else if (expression != "114514") {
-            secretVisible = false
-            dismissedSecretFor = ""
-        }
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -206,6 +196,9 @@ private fun EngineeringCalculatorApp() {
                         modifier = Modifier.weight(1f),
                         onKey = { key ->
                             showResult = key == "="
+                            if (key == "=" && expression == "114514") {
+                                secretVisible = true
+                            }
                             handleKey(
                                 key = key,
                                 expressionValue = expressionValue,
@@ -269,7 +262,6 @@ private fun EngineeringCalculatorApp() {
             SecretImageOverlay(
                 onDismiss = {
                     secretVisible = false
-                    dismissedSecretFor = expression
                 }
             )
         }

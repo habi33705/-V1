@@ -33,6 +33,7 @@
 ```text
 releases/
   calculator-release-v1.0.0.apk
+  calculator-release-v1.0.1.apk
 ```
 
 ## Build

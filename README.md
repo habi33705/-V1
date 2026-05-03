@@ -26,7 +26,7 @@
 
 ## APK
 
-デバッグAPKはリポジトリ直下の `calculator-debug.apk` からダウンロードできます。
+デバッグAPKはリポジトリ直下の `calculator-release-signed.apk` からダウンロードできます。
 
 ## Build
 

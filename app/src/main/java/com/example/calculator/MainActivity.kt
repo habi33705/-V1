@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -48,8 +49,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.font.FontFamily
@@ -153,103 +156,137 @@ private fun EngineeringCalculatorApp() {
     var activeTab by remember { mutableIntStateOf(0) }
     var selectedProfile by remember { mutableIntStateOf(0) }
     var presetName by remember { mutableStateOf("") }
+    var secretVisible by remember { mutableStateOf(false) }
+    var dismissedSecretFor by remember { mutableStateOf("") }
     val presets = remember { mutableStateListOf<Formula>().apply { addAll(loadPresets(context)) } }
     val expression = expressionValue.text
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = Color(0xFFE8ECEF)
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            CalculatorDisplay(
-                expressionValue = expressionValue,
-                onExpressionValueChange = {
-                    expressionValue = it
-                    showResult = false
-                },
-                result = result,
-                showResult = showResult
-            )
-            PrimaryTabRow(
-                selectedTabIndex = activeTab,
-                containerColor = Color(0xFFD9DEE3),
-                contentColor = Color(0xFF10202D)
-            ) {
-                listOf("計算", "公式", "プリセット").forEachIndexed { index, title ->
-                    Tab(selected = activeTab == index, onClick = { activeTab = index }, text = { Text(title) })
-                }
-            }
-
-            when (activeTab) {
-                0 -> CalculatorKeypad(
-                    modifier = Modifier.weight(1f),
-                    onKey = { key ->
-                        showResult = key == "="
-                        handleKey(
-                            key = key,
-                            expressionValue = expressionValue,
-                            result = result,
-                            onExpressionValue = { expressionValue = it },
-                            onResult = { result = it }
-                        )
-                    }
-                )
-
-                1 -> FormulaProfiles(
-                    modifier = Modifier.weight(1f),
-                    selectedProfile = selectedProfile,
-                    onProfileSelected = { selectedProfile = it },
-                    onEvaluate = { formula ->
-                        expressionValue = formula.expression.asExpressionValue()
-                        showResult = false
-                        activeTab = 0
-                    }
-                )
-
-                else -> PresetEditor(
-                    modifier = Modifier.weight(1f),
-                    presets = presets,
-                    presetName = presetName,
-                    expression = expression,
-                    onNameChange = { presetName = it },
-                    onExpressionChange = {
-                        expressionValue = it.asExpressionValue()
-                        showResult = false
-                    },
-                    onInsert = {
-                        expressionValue = it.expression.asExpressionValue()
-                        showResult = false
-                        activeTab = 0
-                    },
-                    onDelete = { formula ->
-                        presets.remove(formula)
-                        savePresets(context, presets)
-                    },
-                    onSave = {
-                        val cleanName = presetName.trim().ifBlank { "ユーザー公式 ${presets.size + 1}" }
-                        if (expression.isNotBlank()) {
-                            presets.add(
-                                Formula(
-                                    name = cleanName,
-                                    expression = expression,
-                                    variables = extractVariables(expression),
-                                    category = "ユーザー"
-                                )
-                            )
-                            savePresets(context, presets)
-                            presetName = ""
-                        }
-                    }
-                )
-            }
+    LaunchedEffect(expression) {
+        if (expression == "114514" && dismissedSecretFor != expression) {
+            secretVisible = true
+        } else if (expression != "114514") {
+            secretVisible = false
+            dismissedSecretFor = ""
         }
     }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color(0xFFE8ECEF)
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CalculatorDisplay(
+                    expressionValue = expressionValue,
+                    onExpressionValueChange = {
+                        expressionValue = it
+                        showResult = false
+                    },
+                    result = result,
+                    showResult = showResult
+                )
+                PrimaryTabRow(
+                    selectedTabIndex = activeTab,
+                    containerColor = Color(0xFFD9DEE3),
+                    contentColor = Color(0xFF10202D)
+                ) {
+                    listOf("計算", "公式", "プリセット").forEachIndexed { index, title ->
+                        Tab(selected = activeTab == index, onClick = { activeTab = index }, text = { Text(title) })
+                    }
+                }
+
+                when (activeTab) {
+                    0 -> CalculatorKeypad(
+                        modifier = Modifier.weight(1f),
+                        onKey = { key ->
+                            showResult = key == "="
+                            handleKey(
+                                key = key,
+                                expressionValue = expressionValue,
+                                result = result,
+                                onExpressionValue = { expressionValue = it },
+                                onResult = { result = it }
+                            )
+                        }
+                    )
+
+                    1 -> FormulaProfiles(
+                        modifier = Modifier.weight(1f),
+                        selectedProfile = selectedProfile,
+                        onProfileSelected = { selectedProfile = it },
+                        onEvaluate = { formula ->
+                            expressionValue = formula.expression.asExpressionValue()
+                            showResult = false
+                            activeTab = 0
+                        }
+                    )
+
+                    else -> PresetEditor(
+                        modifier = Modifier.weight(1f),
+                        presets = presets,
+                        presetName = presetName,
+                        expression = expression,
+                        onNameChange = { presetName = it },
+                        onExpressionChange = {
+                            expressionValue = it.asExpressionValue()
+                            showResult = false
+                        },
+                        onInsert = {
+                            expressionValue = it.expression.asExpressionValue()
+                            showResult = false
+                            activeTab = 0
+                        },
+                        onDelete = { formula ->
+                            presets.remove(formula)
+                            savePresets(context, presets)
+                        },
+                        onSave = {
+                            val cleanName = presetName.trim().ifBlank { "ユーザー公式 ${presets.size + 1}" }
+                            if (expression.isNotBlank()) {
+                                presets.add(
+                                    Formula(
+                                        name = cleanName,
+                                        expression = expression,
+                                        variables = extractVariables(expression),
+                                        category = "ユーザー"
+                                    )
+                                )
+                                savePresets(context, presets)
+                                presetName = ""
+                            }
+                        }
+                    )
+                }
+            }
+        }
+        if (secretVisible) {
+            SecretImageOverlay(
+                onDismiss = {
+                    secretVisible = false
+                    dismissedSecretFor = expression
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SecretImageOverlay(onDismiss: () -> Unit) {
+    Image(
+        painter = painterResource(id = R.drawable.secret_114514),
+        contentDescription = null,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .clickable(onClick = onDismiss),
+        contentScale = ContentScale.Crop
+    )
 }
 
 @Composable

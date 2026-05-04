@@ -790,7 +790,113 @@ private fun String.indexOfTopLevelFractionSlash(): Int {
     return indexOf('⁄')
 }
 
-private fun String.toDisplayExpression(): String = replace("/", "÷").replace("⁄", "÷")
+private fun String.toDisplayExpression(): String {
+    val builder = StringBuilder()
+    var index = 0
+    while (index < length) {
+        when {
+            startsWith("sqrt(", index) -> {
+                builder.append("√")
+                index += 5
+            }
+
+            startsWith("asin(", index) -> {
+                builder.append("sin⁻¹")
+                index += 5
+            }
+
+            startsWith("acos(", index) -> {
+                builder.append("cos⁻¹")
+                index += 5
+            }
+
+            startsWith("atan(", index) -> {
+                builder.append("tan⁻¹")
+                index += 5
+            }
+
+            startsWith("pi", index) -> {
+                builder.append("π")
+                index += 2
+            }
+
+            this[index] == '^' -> {
+                val exponent = readExponent(index + 1)
+                if (exponent != null) {
+                    builder.append(exponent.text.toSuperscript())
+                    index = exponent.nextIndex
+                } else {
+                    builder.append("˄")
+                    index++
+                }
+            }
+
+            this[index] == '*' -> {
+                builder.append("×")
+                index++
+            }
+
+            this[index] == '/' -> {
+                builder.append("÷")
+                index++
+            }
+
+            this[index] == '⁄' -> {
+                builder.append("÷")
+                index++
+            }
+
+            else -> {
+                builder.append(this[index])
+                index++
+            }
+        }
+    }
+    return builder.toString()
+}
+
+private data class DisplayExponent(
+    val text: String,
+    val nextIndex: Int
+)
+
+private fun String.readExponent(startIndex: Int): DisplayExponent? {
+    if (startIndex >= length) return null
+    var index = startIndex
+    val exponent = StringBuilder()
+    if (this[index] == '-') {
+        exponent.append('-')
+        index++
+    }
+    val digitStart = index
+    while (index < length && this[index].isDigit()) {
+        exponent.append(this[index])
+        index++
+    }
+    if (index == digitStart) return null
+    return DisplayExponent(exponent.toString(), index)
+}
+
+private fun String.toSuperscript(): String = buildString {
+    this@toSuperscript.forEach { char ->
+        append(
+            when (char) {
+                '-' -> '⁻'
+                '0' -> '⁰'
+                '1' -> '¹'
+                '2' -> '²'
+                '3' -> '³'
+                '4' -> '⁴'
+                '5' -> '⁵'
+                '6' -> '⁶'
+                '7' -> '⁷'
+                '8' -> '⁸'
+                '9' -> '⁹'
+                else -> char
+            }
+        )
+    }
+}
 
 private fun String.toParserExpression(): String = replace('⁄', '/')
 

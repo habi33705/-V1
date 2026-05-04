@@ -31,7 +31,7 @@
 
 ```text
 calculator-release-signed.apk
-calculator-release-v1.0.4.apk
+calculator-release-v1.0.3.apk
 ```
 
 過去バージョンの署名付きAPKは `releases/` に保存します。
@@ -42,7 +42,6 @@ releases/
   calculator-release-v1.0.1.apk
   calculator-release-v1.0.2.apk
   calculator-release-v1.0.3.apk
-  calculator-release-v1.0.4.apk
 ```
 
 ## Build

@@ -11,8 +11,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,6 +45,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -71,6 +72,7 @@ import com.example.calculator.ui.theme.CalculatorTheme
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlin.math.E
 import kotlin.math.PI
 import kotlin.math.abs
@@ -1040,52 +1042,65 @@ private fun CalcButton(
     onClick: () -> Unit
 ) {
     val view = LocalView.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
+    val scope = rememberCoroutineScope()
+    var pressed by remember { mutableStateOf(false) }
     val repeatEnabled = key !in listOf("SHIFT", "ALPHA", "MODE", "SETUP", "ON", "AC", "=")
     fun pressKey() {
         view.playSoundEffect(SoundEffectConstants.CLICK)
         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         onClick()
     }
-    LaunchedEffect(pressed, key, repeatEnabled) {
-        if (!pressed) return@LaunchedEffect
-        pressKey()
-        if (!repeatEnabled) return@LaunchedEffect
-        delay(360)
-        while (isActive) {
-            pressKey()
-            delay(80)
-        }
-    }
-    val colors = when (style) {
-        KeyStyle.Standard -> ButtonDefaults.buttonColors(containerColor = Color(0xFF2E3640), contentColor = Color.White)
-        KeyStyle.Function -> ButtonDefaults.buttonColors(containerColor = Color(0xFF5F6B75), contentColor = Color.White)
-        KeyStyle.Shift -> ButtonDefaults.buttonColors(containerColor = Color(0xFFC28A2E), contentColor = Color(0xFF17130B))
-        KeyStyle.ShiftActive -> ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC857), contentColor = Color(0xFF17130B))
-        KeyStyle.Alpha -> ButtonDefaults.buttonColors(containerColor = Color(0xFF9E4D67), contentColor = Color.White)
-        KeyStyle.AlphaActive -> ButtonDefaults.buttonColors(containerColor = Color(0xFFE66B98), contentColor = Color.White)
-        KeyStyle.Cursor -> ButtonDefaults.buttonColors(containerColor = Color(0xFF44515D), contentColor = Color.White)
-        KeyStyle.Operator -> ButtonDefaults.buttonColors(containerColor = Color(0xFF234D6F), contentColor = Color.White)
-        KeyStyle.Danger -> ButtonDefaults.buttonColors(containerColor = Color(0xFF8E433E), contentColor = Color.White)
-        KeyStyle.Equals -> ButtonDefaults.buttonColors(containerColor = Color(0xFF2E6F55), contentColor = Color.White)
+    val (containerColor, contentColor) = when (style) {
+        KeyStyle.Standard -> Color(0xFF2E3640) to Color.White
+        KeyStyle.Function -> Color(0xFF5F6B75) to Color.White
+        KeyStyle.Shift -> Color(0xFFC28A2E) to Color(0xFF17130B)
+        KeyStyle.ShiftActive -> Color(0xFFFFC857) to Color(0xFF17130B)
+        KeyStyle.Alpha -> Color(0xFF9E4D67) to Color.White
+        KeyStyle.AlphaActive -> Color(0xFFE66B98) to Color.White
+        KeyStyle.Cursor -> Color(0xFF44515D) to Color.White
+        KeyStyle.Operator -> Color(0xFF234D6F) to Color.White
+        KeyStyle.Danger -> Color(0xFF8E433E) to Color.White
+        KeyStyle.Equals -> Color(0xFF2E6F55) to Color.White
     }
     val mainLabel = keyMainLabel(key, shiftActive, alphaActive)
     val subLabel = keySubLabel(key, shiftActive, alphaActive)
-    ElevatedButton(
-        onClick = {},
-        modifier = modifier.height(if (compact) 41.dp else 58.dp),
+    Surface(
+        modifier = modifier
+            .height(if (compact) 41.dp else 58.dp)
+            .pointerInput(key, repeatEnabled, onClick) {
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        pressKey()
+                        val repeatJob = if (repeatEnabled) {
+                            scope.launch {
+                                delay(220)
+                                while (isActive) {
+                                    pressKey()
+                                    delay(55)
+                                }
+                            }
+                        } else {
+                            null
+                        }
+                        try {
+                            tryAwaitRelease()
+                        } finally {
+                            repeatJob?.cancel()
+                            pressed = false
+                        }
+                    }
+                )
+            },
         shape = RoundedCornerShape(7.dp),
-        colors = colors,
-        interactionSource = interactionSource,
-        contentPadding = PaddingValues(
-            start = 2.dp,
-            top = 2.dp,
-            end = 2.dp,
-            bottom = 2.dp
-        )
+        color = if (pressed) containerColor.copy(alpha = 0.82f) else containerColor,
+        contentColor = contentColor,
+        shadowElevation = if (pressed) 0.dp else 2.dp
     ) {
         Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(PaddingValues(start = 2.dp, top = 2.dp, end = 2.dp, bottom = 2.dp)),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

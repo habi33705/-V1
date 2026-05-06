@@ -31,7 +31,7 @@
 
 ```text
 calculator-release-signed.apk
-calculator-release-v1.0.3.apk
+calculator-release-v1.0.4.apk
 ```
 
 過去バージョンの署名付きAPKは `releases/` に保存します。
@@ -42,6 +42,7 @@ releases/
   calculator-release-v1.0.1.apk
   calculator-release-v1.0.2.apk
   calculator-release-v1.0.3.apk
+  calculator-release-v1.0.4.apk
 ```
 
 ## Build
@@ -61,6 +62,17 @@ app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ## Changelog
+
+### v1.0.4
+
+#### 追加
+
+- キー入力時のクリック音と軽い振動フィードバックを追加
+- 入力系キーの長押し連続入力に対応
+
+#### 改善
+
+- アプリがバックグラウンドに回った時にカーソル点滅処理を停止するように変更
 
 ### v1.0.2
 

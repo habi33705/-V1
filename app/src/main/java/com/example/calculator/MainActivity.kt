@@ -2,6 +2,8 @@ package com.example.calculator
 
 import android.content.Context
 import android.os.Bundle
+import android.view.HapticFeedbackConstants
+import android.view.SoundEffectConstants
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -9,6 +11,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +56,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -65,6 +70,7 @@ import androidx.compose.ui.unit.sp
 import com.example.calculator.ui.theme.CalculatorTheme
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlin.math.E
 import kotlin.math.PI
 import kotlin.math.abs
@@ -80,14 +86,26 @@ import kotlin.math.sqrt
 import kotlin.math.tan
 
 class MainActivity : ComponentActivity() {
+    private val appResumed = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             CalculatorTheme(dynamicColor = false) {
-                EngineeringCalculatorApp()
+                EngineeringCalculatorApp(appActive = appResumed.value)
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        appResumed.value = true
+    }
+
+    override fun onPause() {
+        appResumed.value = false
+        super.onPause()
     }
 }
 
@@ -171,7 +189,7 @@ private val buttonRows = listOf(
 )
 
 @Composable
-private fun EngineeringCalculatorApp() {
+private fun EngineeringCalculatorApp(appActive: Boolean = true) {
     val context = LocalContext.current
     var expressionValue by remember { mutableStateOf(TextFieldValue("")) }
     var result by remember { mutableStateOf("0") }
@@ -216,7 +234,8 @@ private fun EngineeringCalculatorApp() {
                     showResult = showResult,
                     angleMode = angleMode,
                     displayMode = displayMode,
-                    cursorBlinkSpeed = cursorBlinkSpeed
+                    cursorBlinkSpeed = cursorBlinkSpeed,
+                    appActive = appActive
                 )
                 PrimaryTabRow(
                     selectedTabIndex = activeTab,
@@ -558,13 +577,15 @@ private fun CalculatorDisplay(
     showResult: Boolean,
     angleMode: AngleMode,
     displayMode: DisplayMode,
-    cursorBlinkSpeed: CursorBlinkSpeed
+    cursorBlinkSpeed: CursorBlinkSpeed,
+    appActive: Boolean
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     var cursorVisible by remember { mutableStateOf(true) }
 
-    LaunchedEffect(expressionValue.text, expressionValue.selection) {
+    LaunchedEffect(expressionValue.text, expressionValue.selection, cursorBlinkSpeed, appActive) {
         cursorVisible = true
+        if (!appActive) return@LaunchedEffect
         while (true) {
             delay(cursorBlinkSpeed.intervalMillis)
             cursorVisible = !cursorVisible
@@ -1018,6 +1039,25 @@ private fun CalcButton(
     style: KeyStyle,
     onClick: () -> Unit
 ) {
+    val view = LocalView.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val repeatEnabled = key !in listOf("SHIFT", "ALPHA", "MODE", "SETUP", "ON", "AC", "=")
+    fun pressKey() {
+        view.playSoundEffect(SoundEffectConstants.CLICK)
+        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        onClick()
+    }
+    LaunchedEffect(pressed, key, repeatEnabled) {
+        if (!pressed) return@LaunchedEffect
+        pressKey()
+        if (!repeatEnabled) return@LaunchedEffect
+        delay(360)
+        while (isActive) {
+            pressKey()
+            delay(80)
+        }
+    }
     val colors = when (style) {
         KeyStyle.Standard -> ButtonDefaults.buttonColors(containerColor = Color(0xFF2E3640), contentColor = Color.White)
         KeyStyle.Function -> ButtonDefaults.buttonColors(containerColor = Color(0xFF5F6B75), contentColor = Color.White)
@@ -1033,10 +1073,11 @@ private fun CalcButton(
     val mainLabel = keyMainLabel(key, shiftActive, alphaActive)
     val subLabel = keySubLabel(key, shiftActive, alphaActive)
     ElevatedButton(
-        onClick = onClick,
+        onClick = {},
         modifier = modifier.height(if (compact) 41.dp else 58.dp),
         shape = RoundedCornerShape(7.dp),
         colors = colors,
+        interactionSource = interactionSource,
         contentPadding = PaddingValues(
             start = 2.dp,
             top = 2.dp,
